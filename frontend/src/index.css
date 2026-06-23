@@ -2,7 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global resets and font */
+/* ─── Google Font import ─────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ─── Global resets ──────────────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -12,4 +15,84 @@
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Smooth scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 100px;
+}
+
+/* ─── Custom utilities ───────────────────────────────────────────────────── */
+@layer utilities {
+  .glass-card {
+    @apply bg-white/80 dark:bg-gray-900/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/40;
+  }
+
+  .premium-card {
+    @apply bg-white/80 border border-slate-200/80 backdrop-blur-xl transition-all duration-300;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .premium-card {
+      @apply bg-slate-900/60 border border-slate-700/50;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  .gradient-violet {
+    background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+  }
+
+  .gradient-emerald {
+    background: linear-gradient(135deg, #059669 0%, #34d399 100%);
+  }
+
+  .gradient-amber {
+    background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #8b5cf6 0%, #c084fc 100%);
+  }
+}
+
+/* ─── Fade-in animation ──────────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.animate-fade-in-delay-1 {
+  animation: fadeInUp 0.4s ease-out 0.08s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-delay-2 {
+  animation: fadeInUp 0.4s ease-out 0.16s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-delay-3 {
+  animation: fadeInUp 0.4s ease-out 0.24s forwards;
+  opacity: 0;
 }

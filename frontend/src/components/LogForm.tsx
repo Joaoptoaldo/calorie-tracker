@@ -1,18 +1,13 @@
 import { useState } from 'react';
 
-// Base URL for the Flask API
 const API_URL = 'http://localhost:5000/api';
 
-// Category options shown in the UI
 const CATEGORIES = [
-  { value: 'food', label: '🍽️ Alimentação', hint: 'Valor positivo → calorias ingeridas' },
-  { value: 'workout', label: '🏋️ Treino', hint: 'Valor positivo → calorias queimadas' },
+  { value: 'food', label: '🍽️ Alimentação', hint: 'Calorias ingeridas' },
+  { value: 'workout', label: '🏋️ Treino', hint: 'Calorias queimadas' },
 ];
 
 type LogFormProps = {
-  /**
-   * Called after a successful log creation so the parent can refresh data.
-   */
   onSuccess?: () => void;
 };
 
@@ -26,7 +21,6 @@ export default function LogForm({ onSuccess }: LogFormProps) {
 
   const selectedCategory = CATEGORIES.find((c) => c.value === category)!;
 
-  /** Handles form submission. Prevents page reload. */
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -59,7 +53,6 @@ export default function LogForm({ onSuccess }: LogFormProps) {
         throw new Error(data.error || 'Erro ao salvar o registro');
       }
 
-      // Reset form on success
       setDescription('');
       setCalories('');
       setSuccess(true);
@@ -73,35 +66,51 @@ export default function LogForm({ onSuccess }: LogFormProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-800">
-      <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-5 flex items-center gap-2">
-        <span>📝</span> Novo Registro
+    <div className="premium-card rounded-2xl p-7">
+      {/* Section header */}
+      <h2 className="text-base font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2.5">
+        <span className="w-8 h-8 rounded-lg gradient-violet flex items-center justify-center text-sm text-white shadow">
+          📝
+        </span>
+        Novo Registro
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4" id="log-form">
+      <form onSubmit={handleSubmit} className="space-y-5" id="log-form">
         {/* Category toggle */}
-        <div className="flex rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.value}
-              type="button"
-              id={`category-${cat.value}`}
-              onClick={() => setCategory(cat.value as 'food' | 'workout')}
-              className={`flex-1 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                category === cat.value
-                  ? 'bg-violet-600 text-white shadow-inner'
-                  : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 -mt-2">{selectedCategory.hint}</p>
-
-        {/* Description field */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            Categoria
+          </label>
+          <div className="flex gap-2">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.value}
+                type="button"
+                id={`category-${cat.value}`}
+                onClick={() => setCategory(cat.value as 'food' | 'workout')}
+                className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  category === cat.value
+                    ? cat.value === 'food'
+                      ? 'gradient-violet text-white shadow-md shadow-violet-500/25'
+                      : 'gradient-emerald text-white shadow-md shadow-emerald-500/25'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 ml-1">
+            {selectedCategory.hint}
+          </p>
+        </div>
+
+        {/* Description */}
+        <div>
+          <label
+            htmlFor="description"
+            className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2"
+          >
             Descrição
           </label>
           <input
@@ -109,14 +118,21 @@ export default function LogForm({ onSuccess }: LogFormProps) {
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={category === 'food' ? 'Ex: Frango grelhado com arroz' : 'Ex: Corrida 30 min'}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
+            placeholder={
+              category === 'food'
+                ? 'Ex: Frango grelhado com arroz'
+                : 'Ex: Corrida 30 min'
+            }
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition text-sm"
           />
         </div>
 
-        {/* Calories field */}
+        {/* Calories */}
         <div>
-          <label htmlFor="calories" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="calories"
+            className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2"
+          >
             Calorias (kcal)
           </label>
           <input
@@ -126,35 +142,51 @@ export default function LogForm({ onSuccess }: LogFormProps) {
             value={calories}
             onChange={(e) => setCalories(e.target.value)}
             placeholder="Ex: 450"
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition text-sm"
           />
         </div>
 
-        {/* Feedback messages */}
+        {/* Feedback */}
         {error && (
-          <div className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3">
-            <span>⚠️</span>
+          <div className="flex items-start gap-2.5 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl px-4 py-3">
+            <span className="mt-0.5">⚠️</span>
             <span>{error}</span>
           </div>
         )}
         {success && (
-          <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2.5 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl px-4 py-3">
             <span>✅</span>
             <span>Registro adicionado com sucesso!</span>
           </div>
         )}
 
-        {/* Submit button */}
+        {/* Submit */}
         <button
           id="submit-log"
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 active:scale-[0.98] text-white font-semibold text-sm transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-md shadow-violet-500/30"
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl gradient-violet hover:opacity-90 active:scale-[0.98] text-white font-semibold text-sm transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-violet-500/25"
         >
           {loading ? (
-            <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+            <svg
+              className="animate-spin h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8z"
+              />
             </svg>
           ) : null}
           {loading ? 'Salvando...' : 'Salvar Registro'}
