@@ -116,6 +116,27 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
     fetchData();
   }, [fetchData, refreshKey]);
 
+  const handleDelete = async (logId: number) => {
+    try {
+      const response = await fetch(`${API_URL}/logs/${logId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Erro ao excluir o registro.');
+      }
+      
+      // Update logs list state instantly without reloading
+      setLogs((prev) => prev.filter((log) => log.id !== logId));
+
+      // Re-fetch summary in background to update stat cards and pie chart
+      const summaryRes = await fetch(`${API_URL}/summary`).then((r) => r.json());
+      setSummary(summaryRes as Summary);
+    } catch (err: any) {
+      alert(err.message ?? 'Não foi possível excluir o registro.');
+    }
+  };
+
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -307,19 +328,42 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
                       </p>
                     </div>
                   </div>
-                  <span
-                    className={`flex-shrink-0 ml-4 text-sm font-bold tabular-nums ${
-                      log.category === 'food'
-                        ? 'text-red-500 dark:text-red-400'
-                        : 'text-emerald-500 dark:text-emerald-400'
-                    }`}
-                  >
-                    {log.category === 'food' ? '+' : '−'}
-                    {log.calories.toLocaleString('pt-BR')}
-                    <span className="text-xs font-medium ml-0.5 opacity-60">
-                      kcal
+                  <div className="flex items-center gap-3.5">
+                    <span
+                      className={`flex-shrink-0 text-sm font-bold tabular-nums ${
+                        log.category === 'food'
+                          ? 'text-red-500 dark:text-red-400'
+                          : 'text-emerald-500 dark:text-emerald-400'
+                      }`}
+                    >
+                      {log.category === 'food' ? '+' : '−'}
+                      {log.calories.toLocaleString('pt-BR')}
+                      <span className="text-xs font-medium ml-0.5 opacity-60">
+                        kcal
+                      </span>
                     </span>
-                  </span>
+                    <button
+                      onClick={() => handleDelete(log.id)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100"
+                      title="Excluir registro"
+                      aria-label="Excluir registro"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2.5"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

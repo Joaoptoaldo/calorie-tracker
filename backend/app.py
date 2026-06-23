@@ -120,6 +120,21 @@ def get_summary():
 
 
 # ---------------------------------------------------------------------------
+# DELETE /api/logs/<int:log_id> — delete a log entry
+# ---------------------------------------------------------------------------
+@app.route('/api/logs/<int:log_id>', methods=['DELETE'])
+def delete_log(log_id):
+    log = Log.query.get(log_id)
+    if not log:
+        return jsonify({"error": "Log not found"}), 404
+
+    db.session.delete(log)
+    db.session.commit()
+
+    return jsonify({"message": "Deleted"}), 200
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
