@@ -3,7 +3,7 @@ import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 
 const LS_USER_ID_KEY = 'user_id';
-
+const LS_TOKEN_KEY = 'access_token';
 
 export default function App() {
   const [authed, setAuthed] = useState(false);

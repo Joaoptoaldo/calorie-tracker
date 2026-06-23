@@ -1,14 +1,15 @@
 import axios from 'axios';
-import { useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 const API_URL = 'http://localhost:5000/api';
 const LS_USER_ID_KEY = 'user_id';
+const LS_TOKEN_KEY = 'access_token';
 
-export default function Auth() {
+export default function Auth(): JSX.Element {
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const isLogin = useMemo(() => mode === 'login', [mode]);
@@ -17,7 +18,7 @@ export default function Auth() {
     setError(null);
   }, [mode]);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -30,24 +31,42 @@ export default function Auth() {
 
       const endpoint = isLogin ? '/login' : '/register';
 
-      const res = await axios.post(`${API_URL}${endpoint}`, payload, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const res = await axios.post<{
+        user_id: number | string;
+      }>(
+        `${API_URL}${endpoint}`,
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       const userId = res.data?.user_id;
+
       if (!userId) {
         throw new Error('Resposta do servidor inválida: user_id ausente.');
       }
 
       localStorage.setItem(LS_USER_ID_KEY, String(userId));
+      // Corrige auth: backend espera X-User-Id; mantemos user_id, mas também limpamos token (se existir)
+      localStorage.removeItem(LS_TOKEN_KEY);
       window.location.reload();
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        'Falha ao autenticar.';
-      setError(msg);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        const msg =
+          err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          'Falha ao autenticar.';
+
+        setError(msg);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Falha ao autenticar.');
+      }
     } finally {
       setLoading(false);
     }
@@ -59,8 +78,11 @@ export default function Auth() {
         <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white text-center mb-2">
           CalorieDiary
         </h2>
+
         <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
-          {isLogin ? 'Faça login para continuar' : 'Crie sua conta em segundos'}
+          {isLogin
+            ? 'Faça login para continuar'
+            : 'Crie sua conta em segundos'}
         </p>
 
         <div className="flex items-center justify-center gap-3 mb-6">
@@ -70,6 +92,7 @@ export default function Auth() {
           >
             Login
           </span>
+
           <label className="inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
@@ -79,13 +102,17 @@ export default function Auth() {
               }
               className="sr-only"
             />
+
             <div className="w-14 h-8 bg-slate-200 dark:bg-slate-800 rounded-full p-1 transition">
               <div
-                className={`w-6 h-6 rounded-full shadow transition-all ${!isLogin ? 'translate-x-6 bg-emerald-500' : 'bg-violet-600'
+                className={`w-6 h-6 rounded-full shadow transition-all ${!isLogin
+                  ? 'translate-x-6 bg-emerald-500'
+                  : 'bg-violet-600'
                   }`}
               />
             </div>
           </label>
+
           <span
             className={`text-xs font-semibold ${!isLogin ? 'text-emerald-600' : 'text-slate-400'
               }`}
@@ -99,6 +126,7 @@ export default function Auth() {
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Username
             </label>
+
             <input
               type="text"
               value={username}
@@ -113,6 +141,7 @@ export default function Auth() {
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Password
             </label>
+
             <input
               type="password"
               value={password}
@@ -135,11 +164,14 @@ export default function Auth() {
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl gradient-violet hover:opacity-90 active:scale-[0.98] text-white font-semibold text-sm transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-violet-500/25"
           >
-            {loading ? 'Enviando...' : isLogin ? 'Entrar' : 'Cadastrar'}
+            {loading
+              ? 'Enviando...'
+              : isLogin
+                ? 'Entrar'
+                : 'Cadastrar'}
           </button>
         </form>
       </div>
     </div>
   );
 }
-
