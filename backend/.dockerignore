@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.db-journal
+.venv/
+venv/
+.env
+instance/diary.db
+node_modules/
+

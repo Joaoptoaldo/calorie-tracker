@@ -1,0 +1,11 @@
+node_modules/
+.dist/
+dist/
+build/
+*.log
+.venv/
+.vite/
+.env
+*.db
+coverage/
+

@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: calorie-diary-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      # override to use remote DB
+      # - DATABASE_URL=...
+    volumes:
+      - ./backend:/app
+      - ./backend/instance:/app/instance
+    # Helpful so hot reload triggers on file changes
+    command: flask run --host=0.0.0.0 --port=5000
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: calorie-diary-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      # Used by frontend/src/config/api.ts (import.meta.env.VITE_API_URL)
+      - VITE_API_URL=http://localhost:5000/api
+    volumes:
+      - ./frontend:/app
+      # Keep node_modules inside container for better performance
+      - /app/node_modules
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+
