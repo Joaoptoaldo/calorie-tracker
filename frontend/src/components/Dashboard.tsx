@@ -11,6 +11,7 @@ import LogForm from './LogForm';
 
 const API_URL = 'http://localhost:5000/api';
 const LS_USER_ID_KEY = 'user_id';
+const LS_TOKEN_KEY = 'access_token';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -141,6 +142,7 @@ export default function Dashboard({ refreshKey = 0 }: { refreshKey?: number }) {
 
   const handleLogout = () => {
     localStorage.removeItem(LS_USER_ID_KEY);
+    localStorage.removeItem(LS_TOKEN_KEY);
     window.location.reload();
   };
 
