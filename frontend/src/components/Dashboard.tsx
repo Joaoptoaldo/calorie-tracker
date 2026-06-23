@@ -1,15 +1,16 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  PieChart,
-  Pie,
   Cell,
-  Tooltip,
   Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
+  Tooltip,
 } from 'recharts';
 import LogForm from './LogForm';
 
 const API_URL = 'http://localhost:5000/api';
+const LS_USER_ID_KEY = 'user_id';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,7 @@ interface Summary {
 
 interface LogEntry {
   id: number;
+  user_id: number;
   description: string;
   category: 'food' | 'workout';
   calories: number;
@@ -38,8 +40,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   food: '🍽️ Alimentação',
   workout: '🏋️ Treino',
 };
-
-// ─── Stat Card ──────────────────────────────────────────────────────────────
 
 function StatCard({
   label,
@@ -60,9 +60,7 @@ function StatCard({
     <div
       className={`relative overflow-hidden rounded-2xl p-6 shadow-lg ${animClass}`}
     >
-      {/* Gradient background */}
       <div className={`absolute inset-0 ${gradient} opacity-90`} />
-      {/* Glass overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
 
       <div className="relative z-10 flex flex-col gap-1">
@@ -81,13 +79,7 @@ function StatCard({
   );
 }
 
-// ─── Main ───────────────────────────────────────────────────────────────────
-
-interface DashboardProps {
-  refreshKey?: number;
-}
-
-export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
+export default function Dashboard({ refreshKey = 0 }: { refreshKey?: number }) {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,11 +88,13 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
       const [summaryRes, logsRes] = await Promise.all([
         fetch(`${API_URL}/summary`).then((r) => r.json()),
         fetch(`${API_URL}/logs`).then((r) => r.json()),
       ]);
+
       setSummary(summaryRes as Summary);
       setLogs(logsRes as LogEntry[]);
     } catch {
@@ -125,11 +119,9 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
         const data = await response.json();
         throw new Error(data.error || 'Erro ao excluir o registro.');
       }
-      
-      // Update logs list state instantly without reloading
+
       setLogs((prev) => prev.filter((log) => log.id !== logId));
 
-      // Re-fetch summary in background to update stat cards and pie chart
       const summaryRes = await fetch(`${API_URL}/summary`).then((r) => r.json());
       setSummary(summaryRes as Summary);
     } catch (err: any) {
@@ -137,19 +129,20 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
     }
   };
 
-  // ── Loading ───────────────────────────────────────────────────────────────
+  const handleLogout = () => {
+    localStorage.removeItem(LS_USER_ID_KEY);
+    window.location.reload();
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24">
         <div className="w-12 h-12 rounded-full border-[3px] border-violet-500/30 border-t-violet-500 animate-spin" />
-        <span className="text-sm text-gray-400 font-medium">
-          Carregando dados...
-        </span>
+        <span className="text-sm text-gray-400 font-medium">Carregando dados...</span>
       </div>
     );
   }
 
-  // ── Error ─────────────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="glass-card rounded-2xl shadow-xl p-10 flex flex-col items-center gap-4 text-center">
@@ -170,20 +163,32 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
     );
   }
 
-  // ── Derived data ──────────────────────────────────────────────────────────
   const chartData =
     summary && (summary.food_calories > 0 || summary.workout_calories > 0)
       ? [
-          { name: 'Consumidas', value: summary.food_calories, key: 'food' },
-          { name: 'Queimadas', value: summary.workout_calories, key: 'workout' },
-        ].filter((d) => d.value > 0)
+        { name: 'Consumidas', value: summary.food_calories, key: 'food' },
+        { name: 'Queimadas', value: summary.workout_calories, key: 'workout' },
+      ].filter((d) => d.value > 0)
       : [];
 
   const netBalance = summary?.net_balance ?? 0;
 
+  const userId = localStorage.getItem(LS_USER_ID_KEY);
+
   return (
     <div className="space-y-8">
-      {/* ── Stat Cards Row ────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-slate-500 dark:text-slate-400">
+          Autenticado como <span className="font-semibold">user #{userId}</span>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition-colors"
+        >
+          Sair
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <StatCard
           label="Consumidas"
@@ -209,11 +214,8 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
         />
       </div>
 
-      {/* ── Main Layout Grid ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Left Column: Pie Chart and LogForm stacked */}
         <div className="flex flex-col gap-8">
-          {/* Pie Chart Card */}
           <div className="premium-card rounded-2xl p-7 animate-fade-in-delay-2">
             <h2 className="text-base font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2.5">
               <span className="w-8 h-8 rounded-lg gradient-violet flex items-center justify-center text-sm text-white shadow">
@@ -243,7 +245,7 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
                     dataKey="value"
                     strokeWidth={0}
                     label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
+                      `${name} ${Number(((percent ?? 0) * 100).toFixed(0))}%`
                     }
                     labelLine={false}
                   >
@@ -255,9 +257,8 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => [
-                      `${value.toLocaleString('pt-BR')} kcal`,
-                    ]}
+                    formatter={(value) => `${Number(value ?? 0).toLocaleString('pt-BR')} kcal`}
+
                     contentStyle={{
                       borderRadius: '14px',
                       border: 'none',
@@ -281,11 +282,9 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
             )}
           </div>
 
-          {/* LogForm Card */}
           <LogForm onSuccess={fetchData} />
         </div>
 
-        {/* Right Column: Recent Logs */}
         <div className="premium-card rounded-2xl p-7 animate-fade-in-delay-3">
           <h2 className="text-base font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2.5">
             <span className="w-8 h-8 rounded-lg gradient-emerald flex items-center justify-center text-sm text-white shadow">
@@ -308,11 +307,10 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
                 >
                   <div className="flex items-center gap-4 min-w-0 flex-1">
                     <span
-                      className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all duration-300 group-hover:scale-105 ${
-                        log.category === 'food'
-                          ? 'bg-red-500/10 text-red-500 dark:bg-red-500/20 dark:text-red-400 border border-red-500/10 dark:border-red-500/20'
-                          : 'bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/10 dark:border-emerald-500/20'
-                      }`}
+                      className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all duration-300 group-hover:scale-105 ${log.category === 'food'
+                        ? 'bg-red-500/10 text-red-500 dark:bg-red-500/20 dark:text-red-400 border border-red-500/10 dark:border-red-500/20'
+                        : 'bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/10 dark:border-emerald-500/20'
+                        }`}
                     >
                       {log.category === 'food' ? '🍽️' : '🏋️'}
                     </span>
@@ -322,25 +320,20 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
                       </p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                         {CATEGORY_LABEL[log.category]} ·{' '}
-                        {new Date(log.date + 'T00:00:00').toLocaleDateString(
-                          'pt-BR'
-                        )}
+                        {new Date(log.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3.5">
                     <span
-                      className={`flex-shrink-0 text-sm font-bold tabular-nums ${
-                        log.category === 'food'
-                          ? 'text-red-500 dark:text-red-400'
-                          : 'text-emerald-500 dark:text-emerald-400'
-                      }`}
+                      className={`flex-shrink-0 text-sm font-bold tabular-nums ${log.category === 'food'
+                        ? 'text-red-500 dark:text-red-400'
+                        : 'text-emerald-500 dark:text-emerald-400'
+                        }`}
                     >
                       {log.category === 'food' ? '+' : '−'}
                       {log.calories.toLocaleString('pt-BR')}
-                      <span className="text-xs font-medium ml-0.5 opacity-60">
-                        kcal
-                      </span>
+                      <span className="text-xs font-medium ml-0.5 opacity-60">kcal</span>
                     </span>
                     <button
                       onClick={() => handleDelete(log.id)}
@@ -373,3 +366,4 @@ export default function Dashboard({ refreshKey = 0 }: DashboardProps) {
     </div>
   );
 }
+

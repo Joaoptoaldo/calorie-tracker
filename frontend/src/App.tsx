@@ -1,8 +1,28 @@
+import { useEffect, useState } from 'react';
+import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 
+const LS_USER_ID_KEY = 'user_id';
+
+
 export default function App() {
+  const [authed, setAuthed] = useState(false);
+
+  useEffect(() => {
+    setAuthed(!!localStorage.getItem(LS_USER_ID_KEY));
+  }, []);
+
+  if (!authed) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-violet-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 font-sans">
+        <Auth />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-violet-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 font-sans">
+
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 premium-card rounded-none border-t-0 border-x-0 bg-white/70 dark:bg-slate-900/70 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 sm:px-8 py-5 flex items-center justify-between">

@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from models import db, Log
+from models import db, Log, User
 import os
+from werkzeug.security import generate_password_hash
 
 # ---------------------------------------------------------------------------
 # App factory
@@ -30,6 +31,63 @@ with app.app_context():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({"status": "healthy", "message": "API running!"}), 200
+
+
+# ---------------------------------------------------------------------------
+# POST /api/register
+# ---------------------------------------------------------------------------
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify({"error": "Request body must be valid JSON."}), 400
+
+    username = (data.get('username') or '').strip()
+    password = data.get('password') or ''
+
+    if not username:
+        return jsonify({"error": "'username' is required."}), 400
+    if not password:
+        return jsonify({"error": "'password' is required."}), 400
+
+    if User.query.filter_by(username=username).first():
+        return jsonify({"error": "Username already exists."}), 409
+
+    user = User(
+        username=username,
+        password_hash=generate_password_hash(password),
+    )
+
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({"user_id": user.id}), 201
+
+
+# ---------------------------------------------------------------------------
+# POST /api/login
+# ---------------------------------------------------------------------------
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify({"error": "Request body must be valid JSON."}), 400
+
+    username = (data.get('username') or '').strip()
+    password = data.get('password') or ''
+
+    if not username:
+        return jsonify({"error": "'username' is required."}), 400
+    if not password:
+        return jsonify({"error": "'password' is required."}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.check_password(password):
+        return jsonify({"error": "Invalid credentials."}), 401
+
+    return jsonify({"user_id": user.id}), 200
 
 
 # ---------------------------------------------------------------------------
@@ -112,11 +170,13 @@ def get_summary():
     # Net balance: food calories minus workout calories burned
     net_balance = food_total - workout_total
 
-    return jsonify({
-        "food_calories":    food_total,
-        "workout_calories": workout_total,
-        "net_balance":      net_balance,
-    }), 200
+    return jsonify(
+        {
+            "food_calories": food_total,
+            "workout_calories": workout_total,
+            "net_balance": net_balance,
+        }
+    ), 200
 
 
 # ---------------------------------------------------------------------------
