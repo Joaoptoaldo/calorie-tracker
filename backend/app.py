@@ -3,20 +3,31 @@ from flask_cors import CORS
 from models import db, Log, User
 import os
 from werkzeug.security import generate_password_hash
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # App factory
 # ---------------------------------------------------------------------------
 app = Flask(__name__)
 
-# SQLite database stored in the instance/ folder (auto-created by Flask)
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f"sqlite:///{os.path.join(app.instance_path, 'diary.db')}"
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+else:
+    # Adaptive fallback for local SQLite database if environment variable is not set
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+        f"sqlite:///{os.path.join(app.instance_path, 'diary.db')}"
+    )
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Allow requests only from the Vite dev-server on port 5173
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+# Adaptive CORS configuration to support the production domain in the future
+CORS(app, resources={r"/api/*": {"origins": "*"}}) 
 
 db.init_app(app)
 
