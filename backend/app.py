@@ -95,6 +95,10 @@ def login():
 # ---------------------------------------------------------------------------
 @app.route('/api/log', methods=['POST'])
 def create_log():
+    user_id = request.headers.get('X-User-Id', type=int)
+    if not user_id:
+        return jsonify({"error": "Missing X-User-Id."}), 401
+
     data = request.get_json(silent=True)
 
     if not data:
@@ -114,8 +118,9 @@ def create_log():
         description=data['description'].strip(),
         category=category,
         calories=int(data['calories']),
-        user_id=data.get('user_id', 1),
+        user_id=user_id,
     )
+
 
     # Optional date; defaults to today inside the model
     if data.get('date'):
@@ -133,7 +138,12 @@ def create_log():
 # ---------------------------------------------------------------------------
 @app.route('/api/logs', methods=['GET'])
 def list_logs():
-    query = Log.query
+    user_id = request.headers.get('X-User-Id', type=int)
+    if not user_id:
+        return jsonify({"error": "Missing X-User-Id."}), 401
+
+    query = Log.query.filter_by(user_id=user_id)
+
 
     category = request.args.get('category', '').lower()
     if category in ('food', 'workout'):
@@ -155,15 +165,19 @@ def list_logs():
 def get_summary():
     from sqlalchemy import func
 
+    user_id = request.headers.get('X-User-Id', type=int)
+    if not user_id:
+        return jsonify({"error": "Missing X-User-Id."}), 401
+
     food_total = (
         db.session.query(func.sum(Log.calories))
-        .filter_by(category='food')
+        .filter_by(user_id=user_id, category='food')
         .scalar()
     ) or 0
 
     workout_total = (
         db.session.query(func.sum(Log.calories))
-        .filter_by(category='workout')
+        .filter_by(user_id=user_id, category='workout')
         .scalar()
     ) or 0
 

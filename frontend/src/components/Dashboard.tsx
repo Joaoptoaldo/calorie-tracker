@@ -86,14 +86,18 @@ export default function Dashboard({ refreshKey = 0 }: { refreshKey?: number }) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
+    const userId = localStorage.getItem(LS_USER_ID_KEY);
+    const authHeaders = { 'X-User-Id': String(userId) };
+
     setLoading(true);
     setError(null);
 
     try {
       const [summaryRes, logsRes] = await Promise.all([
-        fetch(`${API_URL}/summary`).then((r) => r.json()),
-        fetch(`${API_URL}/logs`).then((r) => r.json()),
+        fetch(`${API_URL}/summary`, { headers: authHeaders }).then((r) => r.json()),
+        fetch(`${API_URL}/logs`, { headers: authHeaders }).then((r) => r.json()),
       ]);
+
 
       setSummary(summaryRes as Summary);
       setLogs(logsRes as LogEntry[]);
@@ -112,9 +116,14 @@ export default function Dashboard({ refreshKey = 0 }: { refreshKey?: number }) {
 
   const handleDelete = async (logId: number) => {
     try {
+      const userId = localStorage.getItem(LS_USER_ID_KEY);
+      const authHeaders = { 'X-User-Id': String(userId) };
+
       const response = await fetch(`${API_URL}/logs/${logId}`, {
         method: 'DELETE',
+        headers: authHeaders,
       });
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Erro ao excluir o registro.');
@@ -122,7 +131,8 @@ export default function Dashboard({ refreshKey = 0 }: { refreshKey?: number }) {
 
       setLogs((prev) => prev.filter((log) => log.id !== logId));
 
-      const summaryRes = await fetch(`${API_URL}/summary`).then((r) => r.json());
+      const summaryRes = await fetch(`${API_URL}/summary`, { headers: authHeaders }).then((r) => r.json());
+
       setSummary(summaryRes as Summary);
     } catch (err: any) {
       alert(err.message ?? 'Não foi possível excluir o registro.');

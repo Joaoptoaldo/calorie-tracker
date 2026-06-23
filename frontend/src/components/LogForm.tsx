@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 const API_URL = 'http://localhost:5000/api';
+const LS_USER_ID_KEY = 'user_id';
 
 const CATEGORIES = [
   { value: 'food', label: '🍽️ Alimentação', hint: 'Calorias ingeridas' },
@@ -38,9 +39,17 @@ export default function LogForm({ onSuccess }: LogFormProps) {
 
     setLoading(true);
     try {
+      const userId = localStorage.getItem(LS_USER_ID_KEY);
+      if (!userId) {
+        throw new Error('Usuário não autenticado (user_id ausente).');
+      }
+
       const response = await fetch(`${API_URL}/log`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': String(userId),
+        },
         body: JSON.stringify({
           description: description.trim(),
           category,
@@ -88,13 +97,12 @@ export default function LogForm({ onSuccess }: LogFormProps) {
                 type="button"
                 id={`category-${cat.value}`}
                 onClick={() => setCategory(cat.value as 'food' | 'workout')}
-                className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  category === cat.value
-                    ? cat.value === 'food'
-                      ? 'gradient-violet text-white shadow-md shadow-violet-500/25'
-                      : 'gradient-emerald text-white shadow-md shadow-emerald-500/25'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
+                className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${category === cat.value
+                  ? cat.value === 'food'
+                    ? 'gradient-violet text-white shadow-md shadow-violet-500/25'
+                    : 'gradient-emerald text-white shadow-md shadow-emerald-500/25'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
               >
                 {cat.label}
               </button>
