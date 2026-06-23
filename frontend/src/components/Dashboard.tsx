@@ -7,9 +7,10 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import LogForm from './LogForm';
 
-const API_URL = 'http://localhost:5000/api';
+import LogForm from './LogForm';
+import { API_URL } from '../config/api';
+
 const LS_USER_ID_KEY = 'user_id';
 const LS_TOKEN_KEY = 'access_token';
 

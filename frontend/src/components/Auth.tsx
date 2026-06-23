@@ -1,8 +1,8 @@
 import axios from 'axios';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { API_URL } from '../config/api';
 
-const API_URL = 'http://localhost:5000/api';
 const LS_USER_ID_KEY = 'user_id';
 const LS_TOKEN_KEY = 'access_token';
 

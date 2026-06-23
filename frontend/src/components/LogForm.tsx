@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import { API_URL } from '../config/api';
 
-const API_URL = 'http://localhost:5000/api';
 const LS_USER_ID_KEY = 'user_id';
 
 const CATEGORIES = [
