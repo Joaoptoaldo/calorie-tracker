@@ -24,7 +24,7 @@ The project is organized into two main directories:
             │   │   ├── config/
             │   │   │   └── api.ts     # API_URL from VITE_API_URL
             │   │   ├── components/
-            │   │   │   ├── Auth.tsx                 # Login/Register UI (POST /login, /register)
+            │   │   │   ├── Auth.tsx                 # Login/Register UI (POST /api/login, /api/register)
             │   │   │   ├── Dashboard.tsx            # Fetches /summary + /logs, renders charts & list
             │   │   │   ├── LogForm.tsx              # Form that POSTs new logs to /log
             │   │   │   └── ProtectedDashboard.tsx  # React route guard
@@ -39,16 +39,21 @@ The project is organized into two main directories:
             │       └── icons.svg
             │
             ├── architecture/
+            │   ├── class-diagram.png # Class Diagram of the application
             │   └── codebase-flow.png # Diagram of the frontend↔backend interaction
             │
             └── docker-compose.yml     # Docker orchestration for local development
 
 ## Features
 
-* **Secure Authentication:** User registration and login featuring secure password hashing on the server side.
-* **Real-Time Caloric Balance:** A clean dashboard displaying total calories consumed, burned, and the current net balance for the day.
-* **Interactive Charting:** A dynamic breakdown chart (PieChart/DonutChart) that updates instantly as new data is logged.
-* **Recent History & Streamlined UX:** A chronological list of the logged-in user's activities, allowing entries to be deleted in real-time without reloading the page (SPA behavior).
+* **Authentication:** Password-based Authentication with Server-side Hashing.
+* **Real-Time Caloric Balance:** A dashboard showing the total calories consumed (food), workout calories (workout), and the day's net balance.
+  - On the backend, the net balance is calculated as `food_total - workout_total`.
+  - The frontend validates that `calories` is a positive number.
+  - The API aggregates `food_calories` and `workout_calories` by their respective categories and computes the net balance as `food_total - workout_total` (net_balance).
+                                                                
+* **Interactive Charting:** A PieChart-style proportion graphic that updates when new data is logged.
+* **Recent History & Streamlined UX:** A chronological list of the logged-in user's activities, allowing entries to be deleted in real time without reloading the page (SPA behavior).
 * **Modern Dark Mode Interface:** A polished, fully responsive UI built using Tailwind CSS utility classes.
 
 ---
@@ -59,11 +64,13 @@ The application strictly separates responsibilities between the Backend (API) an
 
 ### **Backend**
 * **Python 3** with **Flask** (Microframework for handling the REST API)
-* **Database System:** **SQLite** (for local development) & **PostgreSQL via Neon** (serverless database for live production)
+* **Database System:** **SQLite** (for local development) and **PostgreSQL** (for production, configurable via `DATABASE_URL`).
+
+
 * **Flask-SQLAlchemy** (ORM for database schema management and multi-database abstraction)
 * **Flask-CORS** (To handle Cross-Origin Resource Sharing safely between environments)
 * **python-dotenv** & **psycopg2-binary** (For environment variable management and PostgreSQL connection)
-* **Gunicorn** (Production WSGI server used for hosting on Render)
+* **Gunicorn** (Production WSGI server commonly used for deployment)
 * **Werkzeug Security** (For cryptographic password hashing and verification)
 
 ### **Frontend**
@@ -76,7 +83,7 @@ The application strictly separates responsibilities between the Backend (API) an
 
 ### **DevOps & Infrastructure**
 * **Docker & Docker Compose** (Containerization for local environment consistency)
-* **Render** (Cloud hosting for both Backend API and Static Frontend)
+* **Deploy Platform** (cloud hosting for the Backend API and/or Frontend)
 
 ---
 
@@ -88,21 +95,29 @@ The application operates as a Single Page Application (SPA). The frontend commun
 
 ---
 
-## Environment Variables & Configuration
+## Class Diagram
 
-The application automatically switches between local development and production environments based on environment variables:
+The conceptual domain model illustrating the structure, attributes, and relationships of the system's core data models (e.g., Users and Logs):
 
-### Backend (.env)
-* `DATABASE_URL`: If present, the app connects to the remote PostgreSQL. If absent, it automatically falls back to a local `instance/diary.db` SQLite database.
-
-### Frontend (.env.development / .env.production)
-* `VITE_API_URL`: Points to `http://localhost:5000/api` during local development and to the live API url in production.
+![Class Diagram](architecture/class-diagram.png)
 
 ---
 
-## How to Run Locally with Docker
+## User Flow
 
-Ensure you have **Docker** and **Docker Compose** installed, then run the following command in the project root directory:
+1. Register an account
+2. Log in
+3. Create food logs
+4. Create workout logs
+5. View net caloric balance
+6. Delete entries if necessary
 
-```bash
-docker-compose up --build
+---
+
+## Documentation
+
+Additional documentation is available in the `docs/` directory:
+
+- [API Reference](docs/api.md)
+- [Environment Configuration](docs/setup.md)
+- [Codebase Overview](docs/codebase.md)
