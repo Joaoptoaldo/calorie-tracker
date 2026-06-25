@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { API_URL } from '../config/api';
 
 const LS_USER_ID_KEY = 'user_id';
+const LS_TOKEN_KEY = 'access_token';
 
 const CATEGORIES = [
   { value: 'food', label: '🍽️ Alimentação', hint: 'Calorias ingeridas' },
@@ -39,16 +40,16 @@ export default function LogForm({ onSuccess }: LogFormProps) {
 
     setLoading(true);
     try {
-      const userId = localStorage.getItem(LS_USER_ID_KEY);
-      if (!userId) {
-        throw new Error('Usuário não autenticado (user_id ausente).');
+      const token = localStorage.getItem(LS_TOKEN_KEY);
+      if (!token) {
+        throw new Error('Usuário não autenticado (access_token ausente).');
       }
 
       const response = await fetch(`${API_URL}/log`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-User-Id': String(userId),
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           description: description.trim(),

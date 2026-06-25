@@ -2,10 +2,15 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from models import db, Log, User
 import os
+import jwt
+from jwt import PyJWTError
+from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 
+
 load_dotenv()
+
 
 # ---------------------------------------------------------------------------
 # App factory
@@ -37,7 +42,60 @@ with app.app_context():
 
 
 # ---------------------------------------------------------------------------
-# Health check
+# JWT helpers
+# ---------------------------------------------------------------------------
+JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_EXP_MINUTES = int(os.getenv("JWT_EXP_MINUTES", "30"))
+
+
+def generate_token(user_id: int) -> str:
+    if not JWT_SECRET:
+        raise RuntimeError('JWT_SECRET not configured')
+
+    now = datetime.now(timezone.utc)
+    payload = {
+        'sub': str(user_id),
+        'iat': int(now.timestamp()),
+        'exp': int((now + timedelta(minutes=JWT_EXP_MINUTES)).timestamp()),
+    }
+
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def get_current_user_id():
+    auth = request.headers.get('Authorization', '')
+    if not auth.startswith('Bearer '):
+        return None
+
+    token = auth.split(' ', 1)[1].strip()
+    if not token:
+        return None
+
+    try:
+        decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except (PyJWTError, ValueError, TypeError):
+        return None
+
+    sub = decoded.get('sub')
+    if sub is None:
+        return None
+
+    try:
+        return int(sub)
+    except (TypeError, ValueError):
+        return None
+
+
+def auth_required():
+    user_id = get_current_user_id()
+    if not user_id:
+        return None
+    return user_id
+
+
+# ---------------------------------------------------------------------------
+# Auth endpoints
 # ---------------------------------------------------------------------------
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -61,6 +119,10 @@ def register():
         return jsonify({"error": "'username' is required."}), 400
     if not password:
         return jsonify({"error": "'password' is required."}), 400
+
+    # Username must not contain spaces
+    if ' ' in username:
+        return jsonify({"error": "Username inválido. Remova espaços."}), 400
 
     if User.query.filter_by(username=username).first():
         return jsonify({"error": "Username already exists."}), 409
@@ -98,7 +160,9 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid credentials."}), 401
 
-    return jsonify({"user_id": user.id}), 200
+    access_token = generate_token(user.id)
+    return jsonify({"user_id": user.id, "access_token": access_token}), 200
+
 
 
 # ---------------------------------------------------------------------------
@@ -106,9 +170,10 @@ def login():
 # ---------------------------------------------------------------------------
 @app.route('/api/log', methods=['POST'])
 def create_log():
-    user_id = request.headers.get('X-User-Id', type=int)
+    user_id = auth_required()
     if not user_id:
-        return jsonify({"error": "Missing X-User-Id."}), 401
+        return jsonify({"error": "Missing or invalid token."}), 401
+
 
     data = request.get_json(silent=True)
 
@@ -149,9 +214,10 @@ def create_log():
 # ---------------------------------------------------------------------------
 @app.route('/api/logs', methods=['GET'])
 def list_logs():
-    user_id = request.headers.get('X-User-Id', type=int)
+    user_id = auth_required()
     if not user_id:
-        return jsonify({"error": "Missing X-User-Id."}), 401
+        return jsonify({"error": "Missing or invalid token."}), 401
+
 
     query = Log.query.filter_by(user_id=user_id)
 
@@ -176,9 +242,10 @@ def list_logs():
 def get_summary():
     from sqlalchemy import func
 
-    user_id = request.headers.get('X-User-Id', type=int)
+    user_id = auth_required()
     if not user_id:
-        return jsonify({"error": "Missing X-User-Id."}), 401
+        return jsonify({"error": "Missing or invalid token."}), 401
+
 
     food_total = (
         db.session.query(func.sum(Log.calories))
@@ -209,9 +276,16 @@ def get_summary():
 # ---------------------------------------------------------------------------
 @app.route('/api/logs/<int:log_id>', methods=['DELETE'])
 def delete_log(log_id):
+    user_id = auth_required()
+    if not user_id:
+        return jsonify({"error": "Missing or invalid token."}), 401
+
     log = Log.query.get(log_id)
     if not log:
         return jsonify({"error": "Log not found"}), 404
+
+    if log.user_id != user_id:
+        return jsonify({"error": "Forbidden."}), 403
 
     db.session.delete(log)
     db.session.commit()

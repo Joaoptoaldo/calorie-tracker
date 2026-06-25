@@ -65,8 +65,6 @@ The application strictly separates responsibilities between the Backend (API) an
 ### **Backend**
 * **Python 3** with **Flask** (Microframework for handling the REST API)
 * **Database System:** **SQLite** (for local development) and **PostgreSQL** (for production, configurable via `DATABASE_URL`).
-
-
 * **Flask-SQLAlchemy** (ORM for database schema management and multi-database abstraction)
 * **Flask-CORS** (To handle Cross-Origin Resource Sharing safely between environments)
 * **python-dotenv** & **psycopg2-binary** (For environment variable management and PostgreSQL connection)

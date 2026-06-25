@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { FormEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { API_URL } from '../config/api';
 
 const LS_USER_ID_KEY = 'user_id';
@@ -19,24 +19,55 @@ export default function Auth() {
     setError(null);
   }, [mode]);
 
+  const inFlightRef = useRef(false);
+
   const submit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+    if (inFlightRef.current) return;
     e.preventDefault();
     setError(null);
     setLoading(true);
 
+    const credentials = {
+      username: username.trim(),
+      password,
+    };
+
     try {
-      const payload = {
-        username: username.trim(),
-        password,
-      };
+      if (isLogin) {
+        const loginRes = await axios.post<{
+          user_id: number | string;
+          access_token: string;
+        }>(
+          `${API_URL}/login`,
+          credentials,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
 
-      const endpoint = isLogin ? '/login' : '/register';
+        const userId = loginRes.data?.user_id;
+        if (!userId) {
+          throw new Error('Resposta do servidor inválida: user_id ausente.');
+        }
 
-      const res = await axios.post<{
-        user_id: number | string;
-      }>(
-        `${API_URL}${endpoint}`,
-        payload,
+        const accessToken = loginRes.data?.access_token;
+        if (!accessToken) {
+          throw new Error(
+            'Resposta do servidor inválida: access_token ausente.'
+          );
+        }
+
+        localStorage.setItem(LS_USER_ID_KEY, String(userId));
+        localStorage.setItem(LS_TOKEN_KEY, String(accessToken));
+        window.location.reload();
+        return;
+      }
+
+      await axios.post<{ user_id: number | string }>(
+        `${API_URL}/register`,
+        credentials,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -44,15 +75,33 @@ export default function Auth() {
         }
       );
 
-      const userId = res.data?.user_id;
+      const loginRes = await axios.post<{
+        user_id: number | string;
+        access_token: string;
+      }>(
+        `${API_URL}/login`,
+        credentials,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
+      const userId = loginRes.data?.user_id;
       if (!userId) {
         throw new Error('Resposta do servidor inválida: user_id ausente.');
       }
 
+      const accessToken = loginRes.data?.access_token;
+      if (!accessToken) {
+        throw new Error(
+          'Resposta do servidor inválida: access_token ausente.'
+        );
+      }
+
       localStorage.setItem(LS_USER_ID_KEY, String(userId));
-      // Corrige auth: backend espera X-User-Id; mantemos user_id, mas também limpamos token (se existir)
-      localStorage.removeItem(LS_TOKEN_KEY);
+      localStorage.setItem(LS_TOKEN_KEY, String(accessToken));
       window.location.reload();
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
