@@ -8,8 +8,8 @@ import {
   Tooltip,
 } from 'recharts';
 
-import LogForm from './LogForm';
 import { API_URL } from '../config/api';
+import LogForm from './LogForm';
 
 const LS_USER_ID_KEY = 'user_id';
 const LS_TOKEN_KEY = 'access_token';
@@ -88,18 +88,46 @@ export default function Dashboard({ refreshKey = 0 }: { refreshKey?: number }) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const userId = localStorage.getItem(LS_USER_ID_KEY);
-    const authHeaders = { 'X-User-Id': String(userId) };
+    const token = localStorage.getItem(LS_TOKEN_KEY);
+    const authHeaders: Record<string, string> = {};
+    if (token) {
+      authHeaders['Authorization'] = `Bearer ${token}`;
+    }
 
     setLoading(true);
     setError(null);
 
+    if (!token) {
+      setError('Usuário não autenticado. Faça login novamente.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const [summaryRes, logsRes] = await Promise.all([
-        fetch(`${API_URL}/summary`, { headers: authHeaders }).then((r) => r.json()),
-        fetch(`${API_URL}/logs`, { headers: authHeaders }).then((r) => r.json()),
+      const [summaryResp, logsResp] = await Promise.all([
+        fetch(`${API_URL}/summary`, { headers: authHeaders }),
+        fetch(`${API_URL}/logs`, { headers: authHeaders }),
       ]);
 
+      if (summaryResp.status === 401 || logsResp.status === 401) {
+        // Session expired / invalid token
+        localStorage.removeItem(LS_TOKEN_KEY);
+        localStorage.removeItem(LS_USER_ID_KEY);
+        setError('Sessão expirada. Faça login novamente.');
+        setLoading(false);
+        return;
+      }
+
+      const summaryRes = (await summaryResp.json()) as unknown;
+      const logsRes = (await logsResp.json()) as unknown;
+
+      if (!Array.isArray(logsRes)) {
+        const msg =
+          (logsRes as any)?.error ||
+          (logsRes as any)?.message ||
+          'Erro ao carregar logs.';
+        throw new Error(msg);
+      }
 
       setSummary(summaryRes as Summary);
       setLogs(logsRes as LogEntry[]);
@@ -118,8 +146,14 @@ export default function Dashboard({ refreshKey = 0 }: { refreshKey?: number }) {
 
   const handleDelete = async (logId: number) => {
     try {
-      const userId = localStorage.getItem(LS_USER_ID_KEY);
-      const authHeaders = { 'X-User-Id': String(userId) };
+      const token = localStorage.getItem(LS_TOKEN_KEY);
+      const authHeaders: Record<string, string> = {};
+
+      if (!token) {
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+
+      authHeaders['Authorization'] = `Bearer ${token}`;
 
       const response = await fetch(`${API_URL}/logs/${logId}`, {
         method: 'DELETE',

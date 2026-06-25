@@ -9,7 +9,9 @@ export default function App() {
   const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
-    setAuthed(!!localStorage.getItem(LS_USER_ID_KEY));
+    const hasUserId = !!localStorage.getItem(LS_USER_ID_KEY);
+    const hasToken = !!localStorage.getItem(LS_TOKEN_KEY);
+    setAuthed(hasUserId && hasToken);
   }, []);
 
   if (!authed) {
